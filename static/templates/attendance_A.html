@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Attendance Records - Smart Attendance{% endblock %}
+{% block page_title %}Complete Attendance Ledger{% endblock %}
+{% block content %}
+<!-- Filtering Panel -->
+<div class="glass-panel p-4 mb-4">
+    <h5 class="mb-3 font-weight-bold"><i class="bi bi-funnel-fill text-info me-2"></i>Filter Records</h5>
+    <form method="GET" action="{{ url_for('admin.view_attendance') }}" class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Subject</label>
+            <select class="form-select" name="subject_id">
+                <option value="">All Subjects</option>
+                {% for sub in subjects %}
+                    <option value="{{ sub.id }}" {% if selected_subject == sub.id %}selected{% endif %}>
+                        {{ sub.subject_code }} - {{ sub.subject_name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="col-md-4">
+            <label class="form-label">Class</label>
+            <select class="form-select" name="class_name">
+                <option value="">All Classes</option>
+                {% for c in classes %}
+                    <option value="{{ c.class_name }}" {% if selected_class == c.class_name %}selected{% endif %}>
+                        {{ c.class_name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="col-md-3">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-control" name="date" value="{{ selected_date or '' }}">
+        </div>
+        
+        <div class="col-md-1 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100 py-2"><i class="bi bi-search"></i></button>
+        </div>
+    </form>
+</div>
+<!-- Attendance Ledger table -->
+<div class="glass-panel p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="m-0 font-weight-bold"><i class="bi bi-journal-check text-success me-2"></i>Ledger Entries</h5>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin.export_excel') }}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+            <a href="{{ url_for('admin.export_pdf') }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table custom-table align-middle">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>UID / Student ID</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Method</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if records %}
+                    {% for r in records %}
+                        <tr>
+                            <td>{{ r.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ r.time.strftime('%H:%M:%S') }}</td>
+                            <td><code>{{ r.student.student_id }}</code></td>
+                            <td>{{ r.student.name }}</td>
+                            <td>{{ r.student.class_name }}</td>
+                            <td>
+                                <span class="badge bg-secondary" title="{{ r.subject.subject_name }}">{{ r.subject.subject_code }}</span>
+                            </td>
+                            <td>
+                                {% if r.status == 'Present' %}
+                                    <span class="badge badge-present"><i class="bi bi-check-circle-fill me-1"></i>Present</span>
+                                {% else %}
+                                    <span class="badge badge-absent"><i class="bi bi-x-circle-fill me-1"></i>{{ r.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-dark border border-secondary">{{ r.method }}</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No attendance matches found. Try resetting filters.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

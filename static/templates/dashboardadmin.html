@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard - Smart Attendance{% endblock %}
+{% block page_title %}Admin Control Center{% endblock %}
+{% block content %}
+<!-- Metrics cards panel -->
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="glass-card stat-card d-flex align-items-center justify-content-between">
+            <div>
+                <h6 class="text-muted text-uppercase mb-2">Total Students</h6>
+                <h3 class="m-0 font-weight-bold">{{ total_students }}</h3>
+            </div>
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="glass-card stat-card d-flex align-items-center justify-content-between">
+            <div>
+                <h6 class="text-muted text-uppercase mb-2">Total Teachers</h6>
+                <h3 class="m-0 font-weight-bold">{{ total_teachers }}</h3>
+            </div>
+            <div class="stat-icon"><i class="bi bi-person-workspace"></i></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card stat-card d-flex align-items-center justify-content-between">
+            <div>
+                <h6 class="text-muted text-uppercase mb-2">Active Subjects</h6>
+                <h3 class="m-0 font-weight-bold">{{ total_subjects }}</h3>
+            </div>
+            <div class="stat-icon"><i class="bi bi-book"></i></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card stat-card d-flex align-items-center justify-content-between">
+            <div>
+                <h6 class="text-muted text-uppercase mb-2">Attendance Rate</h6>
+                <h3 class="m-0 font-weight-bold">{{ attendance_rate }}%</h3>
+            </div>
+            <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+        </div>
+    </div>
+</div>
+<div class="row g-4">
+    <!-- Quick action links -->
+    <div class="col-lg-5">
+        <div class="glass-panel p-4 mb-4">
+            <h5 class="mb-4 font-weight-bold"><i class="bi bi-grid-fill text-info me-2"></i>Quick Actions</h5>
+            <div class="d-grid gap-3">
+                <a href="{{ url_for('admin.list_students') }}" class="btn btn-outline-primary text-start p-3"><i class="bi bi-person-plus-fill me-2"></i> Manage Students & Subject Enrollment</a>
+                <a href="{{ url_for('admin.list_teachers') }}" class="btn btn-outline-info text-start p-3"><i class="bi bi-person-workspace me-2"></i> Manage Teachers & Assign Classes</a>
+                <a href="{{ url_for('admin.list_subjects') }}" class="btn btn-outline-success text-start p-3"><i class="bi bi-plus-circle me-2"></i> Manage Course Syllabus / Subjects</a>
+                <a href="{{ url_for('admin.list_classes') }}" class="btn btn-outline-warning text-start p-3"><i class="bi bi-building-add me-2"></i> Manage Classrooms & Departments</a>
+            </div>
+        </div>
+        
+        <div class="glass-panel p-4">
+            <h5 class="mb-4 font-weight-bold"><i class="bi bi-file-earmark-bar-graph-fill text-success me-2"></i>Reports & Exports</h5>
+            <p class="text-muted">Export complete aggregated attendance sheet for administrative records.</p>
+            <div class="d-flex gap-3">
+                <a href="{{ url_for('admin.export_excel') }}" class="btn btn-success w-50 py-2"><i class="bi bi-file-earmark-excel me-2"></i>Excel Export</a>
+                <a href="{{ url_for('admin.export_pdf') }}" class="btn btn-danger w-50 py-2"><i class="bi bi-file-earmark-pdf me-2"></i>PDF Export</a>
+            </div>
+        </div>
+    </div>
+    <!-- Recent Audit Logs -->
+    <div class="col-lg-7">
+        <div class="glass-panel p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="m-0 font-weight-bold"><i class="bi bi-activity text-warning me-2"></i>Recent System Activity</h5>
+                <a href="{{ url_for('admin.view_logs') }}" class="text-info text-decoration-none small">View All Logs</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table custom-table">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Action</th>
+                            <th>Timestamp</th>
+                            <th>IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_logs %}
+                            {% for log in recent_logs %}
+                                <tr>
+                                    <td>{{ log.user_id if log.user_id else 'System/Guest' }}</td>
+                                    <td>{{ log.action }}</td>
+                                    <td class="small">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td><code>{{ log.ip_address }}</code></td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No activity logs recorded yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

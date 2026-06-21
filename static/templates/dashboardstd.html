@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}Student Dashboard - Smart Attendance{% endblock %}
+{% block page_title %}Student Portal{% endblock %}
+{% block content %}
+<div class="row g-4 mb-5">
+    <!-- Student Profile & static QR Code Card -->
+    <div class="col-lg-7">
+        <div class="glass-panel p-4 h-100">
+            <div class="row align-items-center">
+                <!-- Profile details -->
+                <div class="col-md-7 text-start">
+                    <h4 class="font-weight-bold mb-3"><i class="bi bi-person-fill text-info me-2"></i>My Profile</h4>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><strong>Name:</strong> {{ student.name }}</li>
+                        <li class="mb-2"><strong>Student ID:</strong> <code>{{ student.student_id }}</code></li>
+                        <li class="mb-2"><strong>Class:</strong> {{ student.class_name }}</li>
+                        <li class="mb-2"><strong>Roll Number:</strong> {{ student.roll_no }}</li>
+                        <li class="mb-2"><strong>Registered Email:</strong> {{ student.user.email }}</li>
+                    </ul>
+                    
+                    <div class="mt-4">
+                        <h6 class="font-weight-bold"><i class="bi bi-info-circle-fill text-warning me-1"></i>Static Scanner QR Code</h6>
+                        <p class="text-muted small">Show this QR code to your teacher to mark attendance automatically. It contains only a secure identifier token.</p>
+                    </div>
+                </div>
+                
+                <!-- QR Display and Download -->
+                <div class="col-md-5 text-center qr-container">
+                    <div class="p-3 bg-white rounded border border-secondary-subtle d-inline-block">
+                        <img src="{{ qr_code_base64 }}" alt="Student QR Code" class="img-fluid" style="max-width: 170px;">
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ qr_code_base64 }}" download="QR_Code_{{ student.student_id }}.png" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-download me-1"></i>Download QR Code
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Overall Attendance Gauge -->
+    <div class="col-lg-5">
+        <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-center align-items-center text-center">
+            <h5 class="mb-4 font-weight-bold text-start w-100"><i class="bi bi-graph-up text-success me-2"></i>Overall Attendance</h5>
+            <div class="position-relative my-3" style="width: 150px; height: 150px;">
+                <!-- Circular gauge style representation -->
+                <div class="w-100 h-100 rounded-circle border border-5 border-secondary-subtle d-flex align-items-center justify-content-center">
+                    <div>
+                        <h2 class="m-0 font-weight-bold {% if overall_percentage >= 75 %}text-success{% else %}text-danger{% endif %}">
+                            {{ overall_percentage }}%
+                        </h2>
+                    </div>
+                </div>
+            </div>
+            <p class="text-muted mt-3">
+                {% if overall_percentage >= 75 %}
+                    <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Good! Your attendance is above the 75% requirement.</span>
+                {% else %}
+                    <span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Defaulter Alert! Maintain above 75% to prevent penalty.</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+<div class="row g-4">
+    <!-- Subject-wise Attendance Breakdown -->
+    <div class="col-lg-7">
+        <div class="glass-panel p-4">
+            <h5 class="mb-4 font-weight-bold"><i class="bi bi-book text-info me-2"></i>Subject-wise Attendance Rate</h5>
+            <div class="table-responsive">
+                <table class="table custom-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Classes Attended</th>
+                            <th>Classes Conducted</th>
+                            <th>Attendance %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if subject_stats %}
+                            {% for stat in subject_stats %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ stat.subject_code }}</strong>
+                                        <div class="small text-muted">{{ stat.subject_name }}</div>
+                                    </td>
+                                    <td>{{ stat.attended }}</td>
+                                    <td>{{ stat.total_conducted }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="font-weight-bold {% if stat.percentage >= 75 %}text-success{% else %}text-danger{% endif %}">
+                                                {{ stat.percentage }}%
+                                            </span>
+                                            <div class="progress w-100" style="height: 6px;">
+                                                <div class="progress-bar {% if stat.percentage >= 75 %}bg-success{% else %}bg-danger{% endif %}" 
+                                                     role="progressbar" style="width: {{ stat.percentage }}%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No enrolled subjects found. Contact admin.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Attendance History Log -->
+    <div class="col-lg-5">
+        <div class="glass-panel p-4">
+            <h5 class="mb-4 font-weight-bold"><i class="bi bi-list-check text-success me-2"></i>Recent Attendance History</h5>
+            <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                <table class="table custom-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Subject</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if history_records %}
+                            {% for r in history_records %}
+                                <tr>
+                                    <td>{{ r.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary" title="{{ r.subject.subject_name }}">{{ r.subject.subject_code }}</span>
+                                    </td>
+                                    <td>{{ r.time.strftime('%H:%M:%S') }}</td>
+                                    <td>
+                                        {% if r.status == 'Present' %}
+                                            <span class="badge badge-present"><i class="bi bi-check-circle-fill me-1"></i>Present</span>
+                                        {% else %}
+                                            <span class="badge badge-absent"><i class="bi bi-x-circle-fill me-1"></i>{{ r.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No attendance logs found. Show your QR to teachers during lectures.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Teacher Dashboard - Smart Attendance{% endblock %}
+{% block page_title %}Teacher Portal{% endblock %}
+{% block content %}
+<div class="row g-4 mb-5">
+    <div class="col-md-6">
+        <!-- Start Session Panel -->
+        <div class="glass-panel p-4 h-100">
+            <h5 class="mb-4 font-weight-bold"><i class="bi bi-camera-fill text-primary me-2"></i>Start Attendance Session</h5>
+            <form id="startSessionForm" class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">Select Subject</label>
+                    <select class="form-select" id="sessionSubject" required>
+                        <option value="" disabled selected>Select Subject</option>
+                        {% for sub in taught_subjects %}
+                            <option value="{{ sub.id }}">{{ sub.subject_code }} - {{ sub.subject_name }}</option>
+                        {% else %}
+                            <option value="" disabled>No subjects in your portfolio. Manage portfolio below first.</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-12">
+                    <label class="form-label">Select Class</label>
+                    <select class="form-select" id="sessionClass" required>
+                        <option value="" disabled selected>Select Class</option>
+                        {% for c in classes %}
+                            <option value="{{ c.class_name }}">{{ c.class_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-12 mt-4">
+                    <button type="button" onclick="startScanner()" class="btn btn-primary w-100 py-3 font-weight-bold">
+                        <i class="bi bi-qr-code-scan me-2"></i>Initialize QR Scanner Session
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <!-- Today's stats panel -->
+        <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <h5 class="mb-4 font-weight-bold"><i class="bi bi-graph-up text-success me-2"></i>Today's Overview</h5>
+                <p class="text-muted">Quick statistics on attendance marked by you today.</p>
+                <div class="d-flex align-items-center gap-3 my-4">
+                    <div class="bg-success bg-opacity-10 p-3 rounded border border-success-subtle">
+                        <i class="bi bi-people-fill text-success fs-3"></i>
+                    </div>
+                    <div>
+                        <h2 class="m-0 font-weight-bold">{{ today_count }}</h2>
+                        <span class="text-muted small">Students Marked Present Today</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('teacher.export_excel') }}" class="btn btn-outline-success w-50 py-2"><i class="bi bi-file-earmark-excel me-1"></i>Excel Export</a>
+                <a href="{{ url_for('teacher.export_pdf') }}" class="btn btn-outline-danger w-50 py-2"><i class="bi bi-file-earmark-pdf me-1"></i>PDF Export</a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Teacher Subject Portfolio Management -->
+<div class="glass-panel p-4">
+    <h5 class="mb-3 font-weight-bold"><i class="bi bi-book-half text-info me-2"></i>My Subjects Portfolio</h5>
+    <p class="text-muted">Check/uncheck subjects to adjust which courses you are currently conducting lectures for.</p>
+    
+    <form action="{{ url_for('teacher.dashboard') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="action" value="manage_subjects"/>
+        
+        <div class="subject-cart-box p-3 border rounded mb-4" style="max-height: 250px; overflow-y: auto;">
+            {% for sub in all_subjects %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="subjects" value="{{ sub.id }}" id="portfolio_sub_{{ sub.id }}"
+                           {% if sub in taught_subjects %}checked{% endif %}>
+                    <label class="form-check-label" for="portfolio_sub_{{ sub.id }}">
+                        <strong>{{ sub.subject_code }}</strong> - {{ sub.subject_name }}
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <button type="submit" class="btn btn-outline-primary"><i class="bi bi-save me-2"></i>Save Portfolio Changes</button>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    function startScanner() {
+        const subSelect = document.getElementById('sessionSubject');
+        const classSelect = document.getElementById('sessionClass');
+        
+        const subId = subSelect.value;
+        const className = classSelect.value;
+        
+        if (!subId || !className) {
+            alert('Please select both a subject and a class first.');
+            return;
+        }
+        
+        // Redirect to the scanning page
+        window.location.href = `/teacher/session/${subId}/${encodeURIComponent(className)}`;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}Manage Subjects - Smart Attendance{% endblock %}
+{% block page_title %}Subjects Directory{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="m-0 text-muted"><i class="bi bi-book-half me-2"></i>Academic Subjects</h5>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
+        <i class="bi bi-plus-circle-fill me-2"></i>Add Subject
+    </button>
+</div>
+<div class="glass-panel p-4">
+    <div class="table-responsive">
+        <table class="table custom-table align-middle">
+            <thead>
+                <tr>
+                    <th>Subject Code</th>
+                    <th>Subject Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if subjects %}
+                    {% for subject in subjects %}
+                        <tr>
+                            <td><strong>{{ subject.subject_code }}</strong></td>
+                            <td>{{ subject.subject_name }}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#editSubjectModal_{{ subject.id }}">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteSubjectModal_{{ subject.id }}">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Edit Subject Modal -->
+                        <div class="modal fade" id="editSubjectModal_{{ subject.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content glass-panel border border-secondary-subtle">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title font-weight-bold text-color">Edit Subject Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form action="{{ url_for('admin.edit_subject', id=subject.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <div class="modal-body text-start">
+                                            <div class="mb-3">
+                                                <label class="form-label text-color">Subject Name</label>
+                                                <input type="text" class="form-control" name="subject_name" value="{{ subject.subject_name }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label text-color">Subject Code</label>
+                                                <input type="text" class="form-control" name="subject_code" value="{{ subject.subject_code }}" required>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Delete Confirmation Modal -->
+                        <div class="modal fade" id="deleteSubjectModal_{{ subject.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content glass-panel border border-secondary-subtle">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title font-weight-bold text-color">Confirm Deletion</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body text-start text-color">
+                                        Are you absolutely sure you want to delete the subject <strong>{{ subject.subject_name }} ({{ subject.subject_code }})</strong>?
+                                        <p class="text-danger mt-2 mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Warning: Deleting this subject will permanently remove all student enrollments and attendance histories connected to it.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <form action="{{ url_for('admin.delete_subject', id=subject.id) }}" method="POST">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">No subjects found. Create subjects to get started.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Add Subject Modal -->
+<div class="modal fade" id="addSubjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content glass-panel border border-secondary-subtle">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">Create New Subject</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin.add_subject') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label class="form-label">Subject Name</label>
+                        <input type="text" class="form-control" name="subject_name" required placeholder="Computer Networks">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subject Code</label>
+                        <input type="text" class="form-control" name="subject_code" required placeholder="CS-302">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% block title %}Scanning Session - Smart Attendance{% endblock %}
+{% block page_title %}Active Attendance Scanner{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <!-- QR Scanner & Feedback Panel -->
+    <div class="col-lg-6">
+        <div class="glass-panel p-4 text-center">
+            <h5 class="mb-3 font-weight-bold text-start"><i class="bi bi-camera-video text-primary me-2"></i>Live Webcam Scanner</h5>
+            <div class="alert alert-secondary glass-panel border border-secondary-subtle py-2 px-3 text-start mb-3">
+                <div class="small"><strong>Subject:</strong> {{ subject.subject_code }} - {{ subject.subject_name }}</div>
+                <div class="small"><strong>Target Class:</strong> {{ class_name }}</div>
+                <div class="small"><strong>Total Target Class Students:</strong> {{ total_students }}</div>
+            </div>
+            
+            <!-- Scanner Viewport -->
+            <div id="reader" style="width: 100%;"></div>
+            
+            <div class="mt-3 d-flex justify-content-center gap-2">
+                <button class="btn btn-sm btn-outline-danger" onclick="stopScanning()"><i class="bi bi-camera-video-off me-1"></i>Stop Camera</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="restartScanning()"><i class="bi bi-camera-video me-1"></i>Start Camera</button>
+            </div>
+            
+            <!-- Scanner Log Feed -->
+            <div class="mt-4 text-start">
+                <h6><i class="bi bi-chat-left-text text-info me-2"></i>Status Log Feed</h6>
+                <div id="scannerFeedback" class="p-3 border rounded font-monospace small" style="height: 120px; overflow-y: auto; background: rgba(0,0,0,0.15);">
+                    <div class="text-secondary">[System] Camera ready. Present student QR codes...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Scanned Student List Panel -->
+    <div class="col-lg-6">
+        <div class="glass-panel p-4">
+            <h5 class="mb-4 font-weight-bold"><i class="bi bi-card-checklist text-success me-2"></i>Marked Present Today</h5>
+            <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+                <table class="table custom-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Roll</th>
+                            <th>UID / Student ID</th>
+                            <th>Name</th>
+                            <th>Time</th>
+                            <th>Method</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessionHistoryTable">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Polling attendance history...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<!-- HTML5 QR Code Scanner Library -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    let html5QrcodeScanner = null;
+    const subjectId = "{{ subject.id }}";
+    const className = "{{ class_name }}";
+    const csrfToken = "{{ csrf_token() }}";
+    
+    // Prevent duplicate scanning requests while an AJAX call is active
+    let isProcessing = false;
+    let lastScannedToken = "";
+    let lastScanTime = 0;
+    function appendLog(message, type = 'info') {
+        const feed = document.getElementById('scannerFeedback');
+        const colorMap = {
+            'info': 'text-info',
+            'success': 'text-success',
+            'error': 'text-danger',
+            'warning': 'text-warning'
+        };
+        const el = document.createElement('div');
+        el.className = colorMap[type] || 'text-light';
+        el.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+        feed.appendChild(el);
+        feed.scrollTop = feed.scrollHeight;
+    }
+    function onScanSuccess(decodedText, decodedResult) {
+        const now = Date.now();
+        // Prevent rapid re-scanning of the same QR code token within 4 seconds
+        if (decodedText === lastScannedToken && (now - lastScanTime < 4000)) {
+            return;
+        }
+        
+        if (isProcessing) return;
+        
+        isProcessing = true;
+        lastScannedToken = decodedText;
+        lastScanTime = now;
+        
+        appendLog(`QR token scanned. Sending verification...`, 'info');
+        
+        fetch('/api/attendance/mark', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                qr_token: decodedText,
+                subject_id: parseInt(subjectId),
+                class_name: className
+            })
+        })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(res => {
+            isProcessing = false;
+            if (res.status === 200) {
+                appendLog(`Success: ${res.body.student.name} marked Present!`, 'success');
+                // Play simple success alert sound via web audio API if desired, or play default beep
+                playBeep(200, 800);
+                loadHistory();
+            } else {
+                appendLog(`Error: ${res.body.message}`, 'error');
+                playBeep(100, 250);
+            }
+        })
+        .catch(err => {
+            isProcessing = false;
+            appendLog(`Network error contacting verification endpoint.`, 'error');
+        });
+    }
+    function playBeep(duration, frequency) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = frequency;
+            osc.type = "sine";
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            osc.start();
+            setTimeout(() => osc.stop(), duration);
+        } catch(e) {}
+    }
+    function startScanner() {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                rememberLastUsedCamera: true
+            },
+            /* verbose= */ false
+        );
+        html5QrcodeScanner.render(onScanSuccess);
+    }
+    function stopScanning() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear().then(() => {
+                appendLog("Scanner stopped by user.", "warning");
+            }).catch(err => {
+                console.error("Failed to clear scanner", err);
+            });
+        }
+    }
+    function restartScanning() {
+        stopScanning();
+        setTimeout(startScanner, 500);
+    }
+    function loadHistory() {
+        fetch(`/api/attendance/session_history/${subjectId}/${encodeURIComponent(className)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const tbody = document.getElementById('sessionHistoryTable');
+                tbody.innerHTML = "";
+                
+                if (data.records.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No attendance marked yet today.</td></tr>`;
+                    return;
+                }
+                
+                data.records.forEach(r => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${r.roll_no}</td>
+                            <td><code>${r.student_id}</code></td>
+                            <td>${r.name}</td>
+                            <td>${r.time}</td>
+                            <td><span class="badge bg-secondary">${r.method}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        });
+    }
+    // Startup
+    window.onload = function() {
+        startScanner();
+        loadHistory();
+        // Poll database history every 6 seconds to keep stats synchronized
+        setInterval(loadHistory, 6000);
+    };
+</script>
+{% endblock %}

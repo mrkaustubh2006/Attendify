@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Teacher Dashboard - Smart Attendance System{% endblock %}
+{% block header_title %}Teacher Portal{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <!-- Today's Stats -->
+    <div class="col-md-4">
+        <div class="premium-card stat-card" style="border-left-color: #10b981; height: 100%;">
+            <div>
+                <h5 class="text-muted fs-6 mb-1">Today's Scans</h5>
+                <h3 class="mb-0 font-weight-bold" style="color: #10b981;">{{ today_records_count }}</h3>
+                <p class="text-muted fs-7 mt-2 mb-0">Total students marked today</p>
+            </div>
+            <div class="stat-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.1);">
+                <i class="bi bi-qr-code-scan"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="premium-card h-100">
+            <h4 class="h5 mb-3"><i class="bi bi-play-circle-fill text-primary me-2"></i>Launch Attendance Session</h4>
+            
+            <form action="{{ url_for('teacher.start_session') }}" method="POST">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label for="subject_id" class="form-label text-secondary fs-7">Select Subject</label>
+                        <select class="form-select form-control" id="subject_id" name="subject_id" required>
+                            <option value="" disabled selected>Choose Subject...</option>
+                            {% for sub in subjects %}
+                                <option value="{{ sub.id }}">{{ sub.subject_name }} ({{ sub.subject_code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="class_name" class="form-label text-secondary fs-7">Select Class</label>
+                        <select class="form-select form-control" id="class_name" name="class_name" required>
+                            <option value="" disabled selected>Choose Class...</option>
+                            {% for cls in classes %}
+                                <option value="{{ cls }}">{{ cls }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="duration" class="form-label text-secondary fs-7">Duration (Min)</label>
+                        <input type="number" class="form-control" id="duration" name="duration" min="5" max="180" value="30" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-premium mt-3 w-100">
+                    <i class="bi bi-broadcast me-2"></i> Start Scanning Session
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Active Scanning Sessions -->
+<div class="premium-card mt-4">
+    <h4 class="h5 mb-3"><i class="bi bi-broadcast-pin text-danger me-2"></i>Active QR Scanning Sessions</h4>
+    
+    <div class="table-responsive">
+        <table class="table table-premium w-100">
+            <thead>
+                <tr>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Expires At</th>
+                    <th>Status</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in active_sessions %}
+                <tr>
+                    <td class="font-weight-bold">{{ s.class_name }}</td>
+                    <td>{{ s.subject.subject_name }}</td>
+                    <td>{{ s.expires_at.strftime('%H:%M:%S') }} UTC</td>
+                    <td>
+                        <span class="badge badge-present">Active</span>
+                    </td>
+                    <td>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{{ url_for('teacher.scan_qr_page', token=s.token) }}" class="btn btn-sm btn-success d-flex align-items-center gap-1">
+                                <i class="bi bi-camera-fill"></i> Scan Camera
+                            </a>
+                            <a href="{{ url_for('teacher.close_session', token=s.token) }}" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1">
+                                <i class="bi bi-x-circle"></i> Close
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted p-4">No active scanning sessions. Use the form above to start one.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Extra Actions -->
+<div class="premium-card mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="h5 mb-1">Detailed Attendance Logs</h4>
+            <p class="text-muted fs-7 mb-0">Search, filter, and export class reports to Excel/PDF.</p>
+        </div>
+        <a href="{{ url_for('teacher.view_attendance') }}" class="btn btn-premium">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i> View & Export Logs
+        </a>
+    </div>
+</div>
+{% endblock %}

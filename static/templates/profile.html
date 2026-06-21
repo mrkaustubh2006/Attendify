@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}My Profile - Smart Attendance System{% endblock %}
+{% block header_title %}Student Profile{% endblock %}
+{% block content %}
+<div class="premium-card" style="max-width: 600px; margin: 0 auto;">
+    <div class="text-center mb-4 border-bottom border-color pb-3">
+        <i class="bi bi-person-circle text-primary" style="font-size: 80px;"></i>
+        <h3 class="mt-2 font-weight-bold">{{ student.name }}</h3>
+        <span class="badge bg-primary px-3 py-2 fs-7 mt-1">{{ student.student_id }}</span>
+    </div>
+    <div class="d-flex flex-column gap-3">
+        <div class="row align-items-center">
+            <div class="col-sm-4 text-secondary">Registered Email</div>
+            <div class="col-sm-8 font-weight-bold">{{ student.user.email }}</div>
+        </div>
+        
+        <div class="row align-items-center border-top border-color pt-2">
+            <div class="col-sm-4 text-secondary">Roll Number</div>
+            <div class="col-sm-8 font-weight-bold">{{ student.roll_no }}</div>
+        </div>
+        <div class="row align-items-center border-top border-color pt-2">
+            <div class="col-sm-4 text-secondary">Class/Department</div>
+            <div class="col-sm-8 font-weight-bold">{{ student.class_name }}</div>
+        </div>
+        <div class="row align-items-center border-top border-color pt-2">
+            <div class="col-sm-4 text-secondary">Joined Date</div>
+            <div class="col-sm-8 font-weight-bold text-muted">{{ student.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

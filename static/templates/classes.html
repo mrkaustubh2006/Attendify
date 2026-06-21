@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}Manage Classes - Smart Attendance{% endblock %}
+{% block page_title %}Classes & Departments Directory{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="m-0 text-muted"><i class="bi bi-building me-2"></i>Academic Classes</h5>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClassModal">
+        <i class="bi bi-plus-circle-fill me-2"></i>Add Class
+    </button>
+</div>
+<div class="glass-panel p-4">
+    <div class="table-responsive">
+        <table class="table custom-table align-middle">
+            <thead>
+                <tr>
+                    <th>Class Name</th>
+                    <th>Department</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if classes %}
+                    {% for c in classes %}
+                        <tr>
+                            <td><strong>{{ c.class_name }}</strong></td>
+                            <td>{{ c.department }}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#editClassModal_{{ c.id }}">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteClassModal_{{ c.id }}">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Edit Class Modal -->
+                        <div class="modal fade" id="editClassModal_{{ c.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content glass-panel border border-secondary-subtle">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title font-weight-bold text-color">Edit Class Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form action="{{ url_for('admin.edit_class', id=c.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <div class="modal-body text-start">
+                                            <div class="mb-3">
+                                                <label class="form-label text-color">Class Name</label>
+                                                <input type="text" class="form-control" name="class_name" value="{{ c.class_name }}" required placeholder="e.g. FY BSc IT">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label text-color">Department</label>
+                                                <input type="text" class="form-control" name="department" value="{{ c.department }}" required placeholder="e.g. Information Technology">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Delete Confirmation Modal -->
+                        <div class="modal fade" id="deleteClassModal_{{ c.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content glass-panel border border-secondary-subtle">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title font-weight-bold text-color">Confirm Deletion</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body text-start text-color">
+                                        Are you absolutely sure you want to delete the class <strong>{{ c.class_name }}</strong>?
+                                        <p class="text-danger mt-2 mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Warning: Deleting this class does not delete students but they may need class reassignment.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <form action="{{ url_for('admin.delete_class', id=c.id) }}" method="POST">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">No classes found. Create classes to get started.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Add Class Modal -->
+<div class="modal fade" id="addClassModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content glass-panel border border-secondary-subtle">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">Create New Class</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin.add_class') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label class="form-label">Class Name</label>
+                        <input type="text" class="form-control" name="class_name" required placeholder="e.g. TY CS">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <input type="text" class="form-control" name="department" required placeholder="e.g. Computer Science">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

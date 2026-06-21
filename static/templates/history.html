@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Attendance History - Smart Attendance{% endblock %}
+{% block page_title %}My Conducted Classes History{% endblock %}
+{% block content %}
+<div class="glass-panel p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="m-0 font-weight-bold"><i class="bi bi-clock-history text-info me-2"></i>Conducted Session Attendance</h5>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('teacher.export_excel') }}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel Export</a>
+            <a href="{{ url_for('teacher.export_pdf') }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i>PDF Export</a>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table custom-table align-middle">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Roll No</th>
+                    <th>UID / Student ID</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Method</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if records %}
+                    {% for r in records %}
+                        <tr>
+                            <td>{{ r.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ r.time.strftime('%H:%M:%S') }}</td>
+                            <td>{{ r.student.roll_no }}</td>
+                            <td><code>{{ r.student.student_id }}</code></td>
+                            <td>{{ r.student.name }}</td>
+                            <td>{{ r.student.class_name }}</td>
+                            <td>
+                                <span class="badge bg-secondary" title="{{ r.subject.subject_name }}">{{ r.subject.subject_code }}</span>
+                            </td>
+                            <td>
+                                {% if r.status == 'Present' %}
+                                    <span class="badge badge-present"><i class="bi bi-check-circle-fill me-1"></i>Present</span>
+                                {% else %}
+                                    <span class="badge badge-absent"><i class="bi bi-x-circle-fill me-1"></i>{{ r.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-dark border border-secondary">{{ r.method }}</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">No records found. Start scanning class sessions to register attendance.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

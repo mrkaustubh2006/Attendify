@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard - Smart Attendance System{% endblock %}
+{% block header_title %}Administrator Control Center{% endblock %}
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row g-4">
+    <div class="col-md-3">
+        <div class="premium-card stat-card">
+            <div>
+                <h5 class="text-muted fs-6 mb-1">Total Students</h5>
+                <h3 class="mb-0 font-weight-bold">{{ total_students }}</h3>
+            </div>
+            <div class="stat-icon">
+                <i class="bi bi-people"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="premium-card stat-card" style="border-left-color: #10b981;">
+            <div>
+                <h5 class="text-muted fs-6 mb-1">Total Teachers</h5>
+                <h3 class="mb-0 font-weight-bold" style="color: #10b981;">{{ total_teachers }}</h3>
+            </div>
+            <div class="stat-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.1);">
+                <i class="bi bi-person-workspace"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="premium-card stat-card" style="border-left-color: #f59e0b;">
+            <div>
+                <h5 class="text-muted fs-6 mb-1">Total Subjects</h5>
+                <h3 class="mb-0 font-weight-bold" style="color: #f59e0b;">{{ total_subjects }}</h3>
+            </div>
+            <div class="stat-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1);">
+                <i class="bi bi-book"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="premium-card stat-card" style="border-left-color: #6366f1;">
+            <div>
+                <h5 class="text-muted fs-6 mb-1">Total Records</h5>
+                <h3 class="mb-0 font-weight-bold" style="color: #6366f1;">{{ total_attendance }}</h3>
+            </div>
+            <div class="stat-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row g-4 mt-1">
+    <!-- Chart Visualizer -->
+    <div class="col-lg-7">
+        <div class="premium-card h-100">
+            <h4 class="h5 mb-4">Attendance Trends (Last 7 Days)</h4>
+            <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="attendanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Quick Actions -->
+    <div class="col-lg-5">
+        <div class="premium-card h-100 d-flex flex-column gap-3">
+            <h4 class="h5 mb-2">Quick Navigation</h4>
+            
+            <a href="{{ url_for('admin.list_students') }}" class="btn btn-outline-secondary w-100 text-start d-flex align-items-center justify-content-between p-3">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-people-fill fs-5 text-primary"></i>
+                    <span>Manage Registered Students</span>
+                </div>
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{{ url_for('admin.list_teachers') }}" class="btn btn-outline-secondary w-100 text-start d-flex align-items-center justify-content-between p-3">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-person-badge-fill fs-5 text-success"></i>
+                    <span>Manage Teacher Directory</span>
+                </div>
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{{ url_for('admin.list_subjects') }}" class="btn btn-outline-secondary w-100 text-start d-flex align-items-center justify-content-between p-3">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-journals fs-5 text-warning"></i>
+                    <span>Manage System Subjects</span>
+                </div>
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="{{ url_for('admin.view_attendance') }}" class="btn btn-outline-secondary w-100 text-start d-flex align-items-center justify-content-between p-3">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-database-fill-check fs-5 text-info"></i>
+                    <span>Review All Logs & Export</span>
+                </div>
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+<!-- Recent Activity -->
+<div class="premium-card mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="h5 mb-0">Recent Attendance Activity</h4>
+        <a href="{{ url_for('admin.view_attendance') }}" class="text-primary font-weight-bold text-decoration-none fs-6">
+            View All logs <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-premium w-100">
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Method</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in recent_attendance %}
+                <tr>
+                    <td>{{ r.roll_no }}</td>
+                    <td>{{ r.student_name }}</td>
+                    <td>{{ r.class_name }}</td>
+                    <td>{{ r.subject_name }}</td>
+                    <td>{{ r.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ r.time.strftime('%H:%M:%S') }}</td>
+                    <td>
+                        <span class="badge {% if r.status == 'Present' %}badge-present{% else %}badge-absent{% endif %}">
+                            {{ r.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">{{ r.attendance_method }}</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted">No attendance marked yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    
+    // Get colors from CSS variables
+    const activeColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || '#6366f1';
+    const successColor = '#10b981';
+    const dangerColor = '#f43f5e';
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels | tojson }},
+            datasets: [
+                {
+                    label: 'Present Students',
+                    data: {{ chart_present_counts | tojson }},
+                    borderColor: successColor,
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Absent Students',
+                    data: {{ chart_absent_counts | tojson }},
+                    borderColor: dangerColor,
+                    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'gray'
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(128, 128, 128, 0.1)'
+                    },
+                    ticks: {
+                        color: 'gray'
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(128, 128, 128, 0.1)'
+                    },
+                    ticks: {
+                        color: 'gray',
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

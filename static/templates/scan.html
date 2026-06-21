@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% block title %}Scan Attendance - Smart Attendance System{% endblock %}
+{% block header_title %}Live Scanning Session{% endblock %}
+{% block extra_head %}
+<!-- HTML5 QR Code Scanner Library -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<style>
+    #scanned-list-card {
+        max-height: 450px;
+        overflow-y: auto;
+    }
+    .scanner-active-border {
+        position: relative;
+    }
+    .scanner-active-border::after {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        border: 4px solid var(--success-color);
+        border-radius: var(--border-radius-md);
+        pointer-events: none;
+        animation: pulseBorder 1.5s infinite;
+    }
+    @keyframes pulseBorder {
+        0% { opacity: 0.3; }
+        50% { opacity: 1; }
+        100% { opacity: 0.3; }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <!-- Camera Scanner Interface -->
+    <div class="col-lg-6">
+        <div class="premium-card text-center d-flex flex-column gap-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="h5 mb-0 text-start">
+                    <i class="bi bi-camera-video-fill text-danger me-2"></i>Scanner View
+                </h4>
+                <span class="badge badge-present bg-opacity-10 text-success">
+                    Session: {{ session.class_name }}
+                </span>
+            </div>
+            
+            <p class="text-muted fs-7 text-start mb-2">
+                Subject: <strong>{{ session.subject.subject_name }} ({{ session.subject.subject_code }})</strong><br>
+                Target Class: <strong>{{ session.class_name }}</strong>
+            </p>
+            <div id="reader-wrapper" class="scanner-active-border rounded-4 overflow-hidden">
+                <div id="reader"></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <div class="text-start">
+                    <span class="fs-7 text-muted">Expires in:</span>
+                    <strong class="d-block text-warning" id="session-countdown">Calculating...</strong>
+                </div>
+                <a href="{{ url_for('teacher.close_session', token=session.token) }}" class="btn btn-danger btn-sm">
+                    <i class="bi bi-x-circle me-1"></i> Close Session
+                </a>
+            </div>
+        </div>
+    </div>
+    <!-- Scanned Students Live Feed -->
+    <div class="col-lg-6">
+        <div class="premium-card h-100 d-flex flex-column">
+            <h4 class="h5 mb-3"><i class="bi bi-list-check text-primary me-2"></i>Live Scanned Queue</h4>
+            
+            <div id="scan-status-alert" class="alert alert-info border-0 py-2 fs-7 mb-3 d-none" role="alert">
+                <!-- Dynamic Scan Result Messages -->
+            </div>
+            <div class="flex-grow-1" id="scanned-list-card">
+                <div class="table-responsive">
+                    <table class="table table-premium w-100">
+                        <thead>
+                            <tr>
+                                <th>Roll No</th>
+                                <th>Student Name</th>
+                                <th>Status</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scanned-students-tbody">
+                            <tr id="empty-row">
+                                <td colspan="4" class="text-center text-muted p-4">
+                                    No scans recorded in this view session yet. Start scanning student QR passes!
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    let html5QrcodeScanner = null;
+    let lastScannedToken = "";
+    let scanCooldown = false;
+    
+    // Play sound notification on successful scan
+    const successSound = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==;"); 
+    function onScanSuccess(decodedText, decodedResult) {
+        if (scanCooldown) return;
+        
+        // Prevent continuous duplicate triggers for the exact same code
+        if (decodedText === lastScannedToken) {
+            showStatusAlert("Duplicate scan prevented.", "warning");
+            return;
+        }
+        scanCooldown = true;
+        lastScannedToken = decodedText;
+        
+        // Show scanning state
+        showStatusAlert("Processing QR code...", "info");
+        
+        // Submit scanned token to REST API
+        fetch("/api/attendance/mark", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                session_token: "{{ session.token }}",
+                qr_token: decodedText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Success: add row to table
+                addScannedRow(data.roll_no, data.student_name, "Present");
+                showStatusAlert(data.message, "success");
+                try { successSound.play(); } catch(e){}
+            } else {
+                // Failure or warnings
+                if (data.already_marked) {
+                    showStatusAlert(data.message, "warning");
+                } else {
+                    showStatusAlert(data.message, "danger");
+                }
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showStatusAlert("Network error. Please try again.", "danger");
+        })
+        .finally(() => {
+            // Restore scan ability after cooldown
+            setTimeout(() => {
+                scanCooldown = false;
+            }, 1800);
+        });
+    }
+    function showStatusAlert(msg, type) {
+        const alertDiv = document.getElementById("scan-status-alert");
+        alertDiv.className = `alert alert-${type} border-0 py-2 fs-7 mb-3`;
+        alertDiv.innerHTML = `<i class="bi bi-info-circle me-1"></i> ${msg}`;
+        alertDiv.classList.remove("d-none");
+    }
+    function addScannedRow(rollNo, name, status) {
+        const tbody = document.getElementById("scanned-students-tbody");
+        const emptyRow = document.getElementById("empty-row");
+        if (emptyRow) emptyRow.remove();
+        
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0];
+        
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td class="font-weight-bold">${rollNo}</td>
+            <td>${name}</td>
+            <td><span class="badge badge-present">${status}</span></td>
+            <td class="text-muted fs-7">${timeStr}</td>
+        `;
+        tbody.prepend(tr);
+    }
+    // Initialize scanner
+    function startScanner() {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                rememberLastUsedCamera: true
+            },
+            /* verbose= */ false
+        );
+        html5QrcodeScanner.render(onScanSuccess);
+    }
+    // Countdown Timer logic
+    const expiresTime = new Date("{{ session.expires_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}").getTime();
+    
+    function updateCountdown() {
+        const now = new Date().getTime();
+        // Convert to UTC/offset difference
+        // For simplicity, we can do relative comparison or local calculation.
+        // Flask uses UTC times so we do standard check.
+        // Let's compute difference relative to current time.
+        // Wait, Flask passes UTC time. We can parse and subtract.
+        // Let's do a client-side timer using remaining minutes.
+        // Wait! We can calculate the remaining seconds by converting both to UTC
+        // JS Date parsing of UTC format ISO string works globally!
+        const distance = expiresTime - now;
+        
+        if (distance < 0) {
+            document.getElementById("session-countdown").innerText = "EXPIRED";
+            document.getElementById("session-countdown").className = "d-block text-danger";
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear();
+            }
+            showStatusAlert("This scanning session has expired.", "danger");
+            return;
+        }
+        
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        document.getElementById("session-countdown").innerText = `${minutes}m ${seconds}s`;
+        setTimeout(updateCountdown, 1000);
+    }
+    window.addEventListener("load", () => {
+        startScanner();
+        updateCountdown();
+    });
+</script>
+{% endblock %}

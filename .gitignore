@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+.env.*
+instance/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Mac
+*.swp
+
+# Logs
+*.log
+
+# Database files
+*.db
+
+# PyInstaller
+dist/
+build/
